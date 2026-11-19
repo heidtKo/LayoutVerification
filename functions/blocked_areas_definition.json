@@ -1,0 +1,14 @@
+{
+  "pipeline": "a0P000000000000000",
+  "files": [
+    {
+      "file": "force-app/main/default/layouts/Account-Account Layout.layout-meta.xml",
+      "sections": [
+        "Account Information",
+        "Account Summary"
+      ],
+      "keepSequence": false,
+      "order": true
+    }
+  ]
+}
