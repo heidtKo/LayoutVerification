@@ -1,0 +1,203 @@
+<template>
+    <lightning-card title="Layout Sections Settings" icon-name="standard:custom">
+        <div slot="actions">
+            <lightning-button
+                label="Reset"
+                class="slds-m-right_x-small"
+                onclick={handleReset}
+                disabled={isResetDisabled}
+            ></lightning-button>
+            <lightning-button
+                label="Save"
+                variant="brand"
+                onclick={handleSave}
+                disabled={isSaveDisabled}
+            ></lightning-button>
+        </div>
+
+        <div class="slds-var-p-horizontal_medium slds-is-relative">
+            <lightning-spinner
+                lwc:if={isBusy}
+                alternative-text="Loading"
+                size="small"
+            ></lightning-spinner>
+
+            <!-- Parse warning -->
+            <div lwc:if={loadFailed} class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+                <h2>No record Id was received, so the configuration could not be loaded.</h2>
+            </div>
+            <div
+                lwc:if={parseWarning}
+                class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small"
+                role="alert"
+            >
+                <lightning-icon
+                    icon-name="utility:warning"
+                    size="x-small"
+                    class="slds-m-right_x-small"
+                ></lightning-icon>
+                <h2>
+                    The stored details value is not valid JSON and was ignored. Saving will overwrite it.
+                </h2>
+            </div>
+
+            <!-- Pipeline -->
+            <p class="slds-text-color_error">DEBUG recordId: {recordId} | objectApiName: {objectApiName}</p>
+            <div class={pipelineFormClass}>
+                <lightning-record-picker
+                    label="Pipeline"
+                    placeholder="Search active source format pipelines..."
+                    object-api-name="copado__Deployment_Flow__c"
+                    value={pipeline}
+                    filter={pipelineFilter}
+                    required
+                    onchange={handlePipelineChange}
+                ></lightning-record-picker>
+                <div lwc:if={showPipelineError} class="slds-form-element__help" role="alert">
+                    Select a pipeline.
+                </div>
+            </div>
+
+            <!-- Files header -->
+            <div class="slds-grid slds-grid_vertical-align-center slds-m-top_large">
+                <h3 class="slds-text-heading_small slds-col slds-grow">
+                    Files ({fileCount})
+                </h3>
+                <lightning-button
+                    label="Add file"
+                    icon-name="utility:add"
+                    onclick={handleAddFile}
+                ></lightning-button>
+            </div>
+
+            <!-- Empty state -->
+            <div
+                lwc:if={hasNoFiles}
+                class="slds-box slds-theme_shade slds-text-align_center slds-m-top_small"
+            >
+                <p class="slds-text-color_weak">No files yet. Use "Add file" to get started.</p>
+            </div>
+
+            <!-- File cards -->
+            <template for:each={displayFiles} for:item="f">
+                <div
+                    key={f.key}
+                    class="slds-box slds-box_x-small slds-theme_default slds-m-top_small"
+                >
+                    <!-- File path and delete -->
+                    <div class="slds-grid slds-grid_vertical-align-end">
+                        <div class="slds-col slds-grow">
+                            <lightning-input
+                                label={f.fileLabel}
+                                value={f.file}
+                                placeholder="force-app/main/default/layouts/Account-Account Layout.layout-meta.xml"
+                                required
+                                data-required
+                                data-file-key={f.key}
+                                onchange={handleFileChange}
+                            ></lightning-input>
+                        </div>
+                        <div class="slds-col slds-no-flex slds-p-left_x-small">
+                            <lightning-button-icon
+                                icon-name="utility:delete"
+                                variant="border"
+                                alternative-text="Delete file"
+                                title="Delete file"
+                                data-file-key={f.key}
+                                onclick={handleDeleteFile}
+                            ></lightning-button-icon>
+                        </div>
+                    </div>
+
+                    <!-- Flags -->
+                    <div class="slds-grid slds-m-top_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Keep sequence"
+                            checked={f.keepSequence}
+                            class="slds-m-right_large"
+                            data-file-key={f.key}
+                            data-flag="keepSequence"
+                            onchange={handleFlagChange}
+                        ></lightning-input>
+                        <lightning-input
+                            type="checkbox"
+                            label="Order"
+                            checked={f.order}
+                            data-file-key={f.key}
+                            data-flag="order"
+                            onchange={handleFlagChange}
+                        ></lightning-input>
+                    </div>
+
+                    <!-- Collapsible sections -->
+                    <div class={f.sectionClass}>
+                        <h3 class="slds-section__title">
+                            <button
+                                type="button"
+                                class="slds-button slds-section__title-action"
+                                aria-expanded={f.ariaExpanded}
+                                data-file-key={f.key}
+                                onclick={handleToggleSections}
+                            >
+                                <lightning-icon
+                                    icon-name="utility:switch"
+                                    size="x-small"
+                                    class="slds-section__title-action-icon slds-button__icon slds-button__icon_left"
+                                ></lightning-icon>
+                                <span class="slds-truncate" title={f.sectionsLabel}>{f.sectionsLabel}</span>
+                            </button>
+                        </h3>
+
+                        <div lwc:if={f.expanded} class="slds-section__content">
+                            <p lwc:if={f.hasNoSections} class="slds-text-color_weak slds-m-bottom_x-small">
+                                No sections for this file.
+                            </p>
+
+                            <template for:each={f.sections} for:item="s">
+                                <div
+                                    key={s.key}
+                                    class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small"
+                                >
+                                    <div class="slds-col slds-grow">
+                                        <lightning-input
+                                            label={s.label}
+                                            variant="label-hidden"
+                                            value={s.name}
+                                            placeholder="Section name"
+                                            required
+                                            data-required
+                                            data-file-key={f.key}
+                                            data-section-key={s.key}
+                                            onchange={handleSectionChange}
+                                        ></lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-no-flex slds-p-left_x-small">
+                                        <lightning-button-icon
+                                            icon-name="utility:close"
+                                            variant="bare"
+                                            alternative-text="Delete section"
+                                            title="Delete section"
+                                            data-file-key={f.key}
+                                            data-section-key={s.key}
+                                            onclick={handleDeleteSection}
+                                        ></lightning-button-icon>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <lightning-button
+                                label="Add section"
+                                icon-name="utility:add"
+                                variant="neutral"
+                                size="small"
+                                data-file-key={f.key}
+                                onclick={handleAddSection}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -1,2 +1,4 @@
 **/jsconfig.json
 **/.eslintrc.json
+**/__*__
+force-app/main/default/customMetadata/copado__UISection.copadoQuality__PMD_Extension_Configuration_Settings.md-meta.xml

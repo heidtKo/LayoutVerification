@@ -9,6 +9,15 @@
       ],
       "keepSequence": false,
       "order": true
+    },
+    {
+      "file": "force-app/main/default/layouts/Asset-Asset Layout.layout-meta.xml",
+      "sections": [
+        "Asset Information",
+        "Detailed Description"
+      ],
+      "keepSequence": false,
+      "order": true
     }
   ]
 }

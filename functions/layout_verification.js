@@ -16,7 +16,8 @@ const SNIPPET_PREVIEW_MAX_LINES = 40;
 const {
     blocked_ui_sections,
     baseBranch = 'main',
-    featureBranch
+    featureBranch,
+    contextId
 } = process.env;
 
 // Disable StrictHostKeyChecking for Git SSH commands to prevent interactive prompts
@@ -218,14 +219,14 @@ async function run() {
         logStep('ENVIRONMENT');
         logInfo(`baseBranch      : ${baseBranch}`);
         logInfo(`featureBranch   : ${featureBranch}`);
+        logInfo(`contextId       : ${contextId}`);
         logInfo(`blocked_ui_sections defined: ${!!blocked_ui_sections}`);
+        logInfo(`blocked_ui_sections length : ${(blocked_ui_sections || '').length}`);
+        logInfo(`All env var names: ${Object.keys(process.env).sort().join(', ')}`);
         logInfo(`Node version    : ${process.version}`);
         logInfo(`Working dir     : ${process.cwd()}`);
         logInfo(`GIT_SSH_COMMAND : ${process.env.GIT_SSH_COMMAND}`);
 
-        if (!blocked_ui_sections) {
-            logAndExit("No blocked_ui_sections defined in properties. Exiting successfully.");
-        }
 
         logStep('PARSING blocked_ui_sections');
         const parsedConfig = parseBlockedSections(blocked_ui_sections);

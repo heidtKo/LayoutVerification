@@ -80,3 +80,5 @@ $RECYCLE.BIN/
 .agentia/apex.tests.*.json
 .memory
 requirements.md
+
+force-app/main/default/customMetadata/copado__UISection.copadoQuality__PMD_Extension_Configuration_Settings.md-meta.xml
