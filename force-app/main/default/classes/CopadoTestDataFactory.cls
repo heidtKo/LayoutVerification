@@ -400,4 +400,42 @@ public class CopadoTestDataFactory {
         return step;
     }
 
+/**
+     * Returns a valid value for the required copado__ExtensionConfiguration__c.copado__ExtensionApplication__c field.
+     * For a picklist, the first active value is used so restricted picklists are respected.
+     * For any other non-reference type, a plain text value is returned.
+     */
+    public static String getExtensionApplicationValue(){
+        Schema.DescribeFieldResult fieldDescribe = copado__ExtensionConfiguration__c.copado__ExtensionApplication__c.getDescribe();
+
+        if(fieldDescribe.getType() == Schema.DisplayType.PICKLIST){
+            for(Schema.PicklistEntry entry : fieldDescribe.getPicklistValues()){
+                if(entry.isActive()){
+                    return entry.getValue();
+                }
+            }
+        }
+
+        return 'Unit Test Extension Application';
+    }
+
+    /**
+     * Creates (does not insert) an Extension Configuration.
+     * The required Extension Application field is populated through getExtensionApplicationValue.
+     */
+    public static copado__ExtensionConfiguration__c createExtensionConfiguration(
+            String name,
+            String toolName,
+            Boolean isActive,
+            String details
+    ){
+        copado__ExtensionConfiguration__c ec = new copado__ExtensionConfiguration__c();
+        ec.Name = name;
+        ec.put('copado__ExtensionApplication__c', getExtensionApplicationValue());
+        ec.copado__ExtensionTool__c = toolName;
+        ec.copado__Active__c = isActive;
+        ec.copado__Details__c = details;
+        return ec;
+    }
+
 }
