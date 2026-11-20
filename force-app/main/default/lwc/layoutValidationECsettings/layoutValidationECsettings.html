@@ -22,10 +22,16 @@
                 size="small"
             ></lightning-spinner>
 
-            <!-- Parse warning -->
-            <div lwc:if={loadFailed} class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+            <!-- Load failure -->
+            <div
+                lwc:if={loadFailed}
+                class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small"
+                role="alert"
+            >
                 <h2>No record Id was received, so the configuration could not be loaded.</h2>
             </div>
+
+            <!-- Parse warning -->
             <div
                 lwc:if={parseWarning}
                 class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small"
@@ -42,11 +48,10 @@
             </div>
 
             <!-- Pipeline -->
-            <p class="slds-text-color_error">DEBUG recordId: {recordId} | objectApiName: {objectApiName}</p>
             <div class={pipelineFormClass}>
                 <lightning-record-picker
                     label="Pipeline"
-                    placeholder="Search active source format pipelines..."
+                    placeholder="Search active pipelines..."
                     object-api-name="copado__Deployment_Flow__c"
                     value={pipeline}
                     filter={pipelineFilter}
@@ -109,25 +114,17 @@
                         </div>
                     </div>
 
-                    <!-- Flags -->
-                    <div class="slds-grid slds-m-top_x-small">
-                        <lightning-input
-                            type="checkbox"
-                            label="Keep sequence"
-                            checked={f.keepSequence}
-                            class="slds-m-right_large"
+                    <!-- Validation mode (mutually exclusive) -->
+                    <div class="slds-m-top_x-small">
+                        <lightning-radio-group
+                            name={f.key}
+                            label="Validation mode"
+                            options={f.flagOptions}
+                            value={f.flagValue}
+                            type="radio"
                             data-file-key={f.key}
-                            data-flag="keepSequence"
                             onchange={handleFlagChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            label="Order"
-                            checked={f.order}
-                            data-file-key={f.key}
-                            data-flag="order"
-                            onchange={handleFlagChange}
-                        ></lightning-input>
+                        ></lightning-radio-group>
                     </div>
 
                     <!-- Collapsible sections -->

@@ -12,6 +12,30 @@ const NEW_FILE_DEFAULTS = {
     order: true,
 };
 
+// Radio values. "order" and "keepSequence" map to the boolean keys stored in
+// the copado__Details__c JSON. "none" means both booleans are false, which is
+// a valid legacy state, so it stays selectable.
+const FLAG_ORDER = "order";
+const FLAG_KEEP_SEQUENCE = "keepSequence";
+const FLAG_NONE = "none";
+
+const FLAG_OPTIONS = [
+    { label: "Order", value: FLAG_ORDER },
+    { label: "Keep sequence", value: FLAG_KEEP_SEQUENCE },
+    { label: "None", value: FLAG_NONE },
+];
+
+// Filter for the pipeline record picker (active pipelines only).
+const PIPELINE_FILTER = {
+    criteria: [
+        {
+            fieldPath: "copado__Active__c",
+            operator: "eq",
+            value: true,
+        },
+    ],
+};
+
 function errorMessage(error) {
     if (Array.isArray(error?.body)) {
         return error.body.map((e) => e.message).join(", ");
@@ -74,7 +98,15 @@ export default class LayoutSectionsSettings extends LightningElement {
                 return;
             }
             this._savedJson = raw;
-            this.applyJson(raw);
+            try {
+                this.applyJson(raw);
+            } catch (e) {
+                // Never leave the spinner running because of unexpected stored data.
+                this.parseWarning = true;
+                this.files = [];
+                this.pipeline = null;
+                this.isDirty = false;
+            }
             this._initialized = true;
             this.isLoading = false;
         } else if (error) {
@@ -92,13 +124,16 @@ export default class LayoutSectionsSettings extends LightningElement {
         let cfg = {};
         if (raw) {
             try {
-                cfg = JSON.parse(raw) ?? {};
+                const parsed = JSON.parse(raw);
+                cfg = parsed && typeof parsed === "object" ? parsed : {};
             } catch (e) {
                 this.parseWarning = true;
             }
         }
         this.pipeline = cfg.pipeline || null;
-        const files = Array.isArray(cfg.files) ? cfg.files : [];
+        const files = Array.isArray(cfg.files)
+            ? cfg.files.filter((f) => f && typeof f === "object")
+            : [];
         this.files = files.map((f) =>
             this.buildFile({
                 file: f.file,
@@ -113,6 +148,10 @@ export default class LayoutSectionsSettings extends LightningElement {
     /* ---------------------------------------------------------------
      * View model
      * ------------------------------------------------------------- */
+    get pipelineFilter() {
+        return PIPELINE_FILTER;
+    }
+
     get displayFiles() {
         return this.files.map((f, index) => ({
             ...f,
@@ -121,6 +160,13 @@ export default class LayoutSectionsSettings extends LightningElement {
             hasNoSections: f.sections.length === 0,
             ariaExpanded: String(f.expanded),
             sectionClass: `slds-section slds-m-top_small${f.expanded ? " slds-is-open" : ""}`,
+            // Each file gets its own copy of the options.
+            flagOptions: FLAG_OPTIONS.map((o) => ({ ...o })),
+            flagValue: f.order
+                ? FLAG_ORDER
+                : f.keepSequence
+                  ? FLAG_KEEP_SEQUENCE
+                  : FLAG_NONE,
             sections: f.sections.map((s, i) => ({ ...s, label: `Section ${i + 1}` })),
         }));
     }
@@ -158,11 +204,13 @@ export default class LayoutSectionsSettings extends LightningElement {
     }
 
     buildFile(src = NEW_FILE_DEFAULTS) {
+        const order = Boolean(src.order);
         return {
             key: this.nextKey("f"),
             file: src.file || "",
-            keepSequence: Boolean(src.keepSequence),
-            order: Boolean(src.order),
+            order,
+            // Mutually exclusive: if legacy data has both true, "order" wins.
+            keepSequence: order ? false : Boolean(src.keepSequence),
             expanded: true,
             sections: (Array.isArray(src.sections) ? src.sections : []).map(
                 (name) => ({
@@ -228,9 +276,13 @@ export default class LayoutSectionsSettings extends LightningElement {
     }
 
     handleFlagChange(event) {
-        const { fileKey, flag } = event.currentTarget.dataset;
-        const checked = event.detail.checked;
-        this.updateFile(fileKey, (f) => ({ ...f, [flag]: checked }));
+        const { fileKey } = event.currentTarget.dataset;
+        const selected = event.detail.value;
+        this.updateFile(fileKey, (f) => ({
+            ...f,
+            order: selected === FLAG_ORDER,
+            keepSequence: selected === FLAG_KEEP_SEQUENCE,
+        }));
         this.isDirty = true;
     }
 
@@ -281,8 +333,6 @@ export default class LayoutSectionsSettings extends LightningElement {
     }
 
     async handleSave() {
-        // Expand files that contain blank section names so the inputs render
-        // and can report their validity.
         if (!this.effectiveRecordId) {
             this.showToast(
                 "Could not save configuration",
@@ -291,6 +341,8 @@ export default class LayoutSectionsSettings extends LightningElement {
             );
             return;
         }
+        // Expand files that contain blank section names so the inputs render
+        // and can report their validity.
         this.files = this.files.map((f) =>
             f.sections.some((s) => !s.name.trim()) ? { ...f, expanded: true } : f,
         );
